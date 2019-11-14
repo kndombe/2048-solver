@@ -1,7 +1,6 @@
 import sys
 sys.path.append('../APIs')
 
-from game import Game
 
 class FeatureExtractor():
     def __init__(self, board):
@@ -66,11 +65,12 @@ class FeatureExtractor():
         return {'empty_tiles': len([1 for i in range(4) for j in range(4) if self.board[i,j]==0])}
 
 
-# Simulation Test
-g = Game()
-for _ in range(30):
-    import random
-    g.move(random.randint(0, 3))
-f = FeatureExtractor(g.board)
-print(g.board)
-print(f.getfeatures())
+# # Simulation Test
+# g = Game()
+# for _ in range(30):
+#     import random
+#     g.move(random.randint(0, 3))
+# f = FeatureExtractor(g.board)
+# print(g.board)
+# print(f.getfeatures())
+# #print(calculate_score(f.getfeatures()))
