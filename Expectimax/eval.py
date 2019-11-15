@@ -72,9 +72,9 @@ def board_generator(board, direction):
                 basic_board[r][c] = 0
     return successors
 
-def eval_options(board, depth):
+def eval_options(board, depth, max_depth=1):
     #Given the board, board
-    if depth == 2:
+    if depth == max_depth:
         return 0, 4
 
     scores = []
@@ -95,7 +95,7 @@ def eval_options(board, depth):
     return statistics.mean(scores), scores.index(max_score)
 
 g = Game()
-for turn in range(5):
+for turn in range(5000):
     print(f"Turn {turn}!")
     print(g.board)
     f = FeatureExtractor(g.board)
@@ -104,7 +104,7 @@ for turn in range(5):
     if(score == 0):
         print(f"You lost on turn {turn} with a score of {score}!")
         break
-    g.move(eval_options(g.board, 0)[1])
+    g.move(eval_options(g.board, 0, 2)[1])
 print(g.board)
 
 #print(calculate_score({'empty_tiles': 0, 'has_merge_row_0_23': 4.0, 'has_merge_col_0_12': 8.0, 'has_merge_col_1_01': 2.0, 'has_merge_col_1_23': 32.0, 'has_merge_col_2_01': 4.0, 'has_merge_col_3_23': 4.0, 'max_tile': 32.0}))
