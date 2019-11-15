@@ -78,6 +78,7 @@ def eval_options(board, depth, max_depth=1):
         return 0, 4
 
     scores = []
+    actions = []
     #Left = 0, Down = 1, Right = 2, Up = 3
     #for each possible action:
     for i in range(4):
@@ -91,11 +92,13 @@ def eval_options(board, depth, max_depth=1):
             if score == 0:
                 continue
             scores.append(score + eval_options(new_board, depth+1)[0])
+            actions.append(i)
     max_score = max(scores)
-    return statistics.mean(scores), scores.index(max_score)
+    return statistics.mean(scores), actions[scores.index(max_score)]
 
 g = Game()
-for turn in range(5000):
+turn = 0
+while True:
     print(f"Turn {turn}!")
     print(g.board)
     f = FeatureExtractor(g.board)
@@ -105,6 +108,7 @@ for turn in range(5000):
         print(f"You lost on turn {turn} with a score of {score}!")
         break
     g.move(eval_options(g.board, 0, 2)[1])
+    turn += 1
 print(g.board)
 
 #print(calculate_score({'empty_tiles': 0, 'has_merge_row_0_23': 4.0, 'has_merge_col_0_12': 8.0, 'has_merge_col_1_01': 2.0, 'has_merge_col_1_23': 32.0, 'has_merge_col_2_01': 4.0, 'has_merge_col_3_23': 4.0, 'max_tile': 32.0}))
