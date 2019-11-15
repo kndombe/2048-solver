@@ -1,15 +1,13 @@
 import numpy as np
-import random
-
 from features import FeatureExtractor
-
+import statistics
 import sys
 sys.path.append('../APIs')
 from game import Game
 
 def calculate_score(feature_array):
     #the score is dependent on the number of mergeable things and the number of empty tiles
-    if feature_array["empty_tiles"] == 0: #there are no empty tiles
+    if len(feature_array) == 2 and feature_array["empty_tiles"] == 0: #there are no empty tiles
         return 0
 
     vertical_merge = 0
@@ -61,35 +59,52 @@ def move(board, direction):
     # rotation to the original
     return np.rot90(board_to_left, direction)
 
-def board_tester(board, direction):
-    return move(board, direction)
+def board_generator(board, direction):
+    basic_board = move(board, direction)
+    successors = []
+    for r in range(4):
+        for c in range(4):
+            if basic_board[r][c] == 0:
+                basic_board[r][c] = 2
+                successors.append(basic_board.copy())
+                basic_board[r][c] = 4
+                successors.append(basic_board.copy())
+                basic_board[r][c] = 0
+    return successors
 
 def eval_options(board, depth):
     #Given the board, board
-    if depth == 4:
+    if depth == 2:
         return 0, 4
 
     scores = []
     #Left = 0, Down = 1, Right = 2, Up = 3
     #for each possible action:
     for i in range(4):
-        new_board = board_tester(board.copy(), i)
-        print(f"{depth}, {i}: {new_board}")
-        #extract features of result
-        f = FeatureExtractor(new_board)
-        #get score
-        score = calculate_score(f.getfeatures())
-        #if loss:
-        if score == 0:
-            continue
-        scores.append(score + eval_options(new_board, depth+1)[0])
-    print(f"{depth}: {scores}")
+        successors = board_generator(board.copy(), i)
+        for new_board in successors:
+            #extract features of result
+            f = FeatureExtractor(new_board)
+            #get score
+            score = calculate_score(f.getfeatures())
+            #if loss:
+            if score == 0:
+                continue
+            scores.append(score + eval_options(new_board, depth+1)[0])
     max_score = max(scores)
-    return max_score, scores.index(max_score)
+    return statistics.mean(scores), scores.index(max_score)
 
 g = Game()
-for _ in range(3):
+for turn in range(5):
+    print(f"Turn {turn}!")
     print(g.board)
     f = FeatureExtractor(g.board)
     print(f.getfeatures())
+    score = calculate_score(f.getfeatures())
+    if(score == 0):
+        print(f"You lost on turn {turn} with a score of {score}!")
+        break
     g.move(eval_options(g.board, 0)[1])
+print(g.board)
+
+#print(calculate_score({'empty_tiles': 0, 'has_merge_row_0_23': 4.0, 'has_merge_col_0_12': 8.0, 'has_merge_col_1_01': 2.0, 'has_merge_col_1_23': 32.0, 'has_merge_col_2_01': 4.0, 'has_merge_col_3_23': 4.0, 'max_tile': 32.0}))
