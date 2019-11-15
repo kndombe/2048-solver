@@ -25,10 +25,44 @@ def calculate_score(feature_array):
             horizontal_merge_value += feature_array[feature]
 
     merging_potential = max((vertical_merge * vertical_merge_value), (horizontal_merge * horizontal_merge_value))
-    return merging_potential + feature_array["empty_tiles"]
+    return (merging_potential + feature_array["empty_tiles"]) * feature_array["max_tile"] * 0.5
 
-def board_tester(board, action):
-    pass
+def merge(row):
+    '''merge the row, there may be some improvement'''
+    non_zero = row[row != 0]  # remove zeros
+    core = [None]
+    for elem in non_zero:
+        if core[-1] is None:
+            core[-1] = elem
+        elif core[-1] == elem:
+            core[-1] = 2 * elem
+            core.append(None)
+        else:
+            core.append(elem)
+    if core[-1] is None:
+        core.pop()
+    return core
+
+def move(board, direction):
+    '''
+    direction:
+        0: left
+        1: down
+        2: right
+        3: up
+    '''
+    # treat all direction as left (by rotation)
+    board_to_left = np.rot90(board, -direction)
+    for row in range(board.shape[0]):
+        core = merge(board_to_left[row])
+        board_to_left[row, :len(core)] = core
+        board_to_left[row, len(core):] = 0
+
+    # rotation to the original
+    return np.rot90(board_to_left, direction)
+
+def board_tester(board, direction):
+    return move(board, direction)
 
 def eval_options(board, depth):
     #Given the board, board
@@ -36,10 +70,11 @@ def eval_options(board, depth):
         return 0, 4
 
     scores = []
-    #Up = 0, Right = 1, Down = 2, Left = 3
+    #Left = 0, Down = 1, Right = 2, Up = 3
     #for each possible action:
     for i in range(4):
-        new_board = board_tester(board, i)
+        new_board = board_tester(board.copy(), i)
+        print(f"{depth}, {i}: {new_board}")
         #extract features of result
         f = FeatureExtractor(new_board)
         #get score
@@ -48,13 +83,13 @@ def eval_options(board, depth):
         if score == 0:
             continue
         scores.append(score + eval_options(new_board, depth+1)[0])
+    print(f"{depth}: {scores}")
     max_score = max(scores)
     return max_score, scores.index(max_score)
 
 g = Game()
-for _ in range(10):
-    f = FeatureExtractor(g.board)
-    g.move(random.randint(0, 3))
+for _ in range(3):
     print(g.board)
+    f = FeatureExtractor(g.board)
     print(f.getfeatures())
-    print(calculate_score(f.getfeatures()))
+    g.move(eval_options(g.board, 0)[1])
