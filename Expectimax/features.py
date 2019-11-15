@@ -1,6 +1,6 @@
 import sys
 sys.path.append('../APIs')
-
+import numpy as np
 
 class FeatureExtractor():
     def __init__(self, board):
@@ -10,6 +10,7 @@ class FeatureExtractor():
         return self.combinefeatures([
             self.emptyTiles(),
             self.hasMerge(),
+            self.maxTile()
         ])
 
     def combinefeatures(self, features):
@@ -64,6 +65,8 @@ class FeatureExtractor():
         '''
         return {'empty_tiles': len([1 for i in range(4) for j in range(4) if self.board[i,j]==0])}
 
+    def maxTile(self):
+        return {'max_tile': np.amax(self.board)}
 
 # # Simulation Test
 # g = Game()
