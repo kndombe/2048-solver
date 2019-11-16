@@ -61,6 +61,13 @@ def move(board, direction):
 
 def board_generator(board, direction):
     basic_board = move(board, direction)
+    f = FeatureExtractor(basic_board)
+    try:
+        if f.getfeatures()["empty_tiles"] == 0:
+            return [basic_board]
+    except IndexError:
+        print(":(")
+
     successors = []
     for r in range(4):
         for c in range(4):
@@ -79,20 +86,22 @@ def eval_options(board, depth, max_depth=1):
 
     scores = []
     actions = []
+    successors = []
     #Left = 0, Down = 1, Right = 2, Up = 3
     #for each possible action:
     for i in range(4):
         successors = board_generator(board.copy(), i)
         for new_board in successors:
+            if np.array_equal(board, new_board):
+                continue
             #extract features of result
             f = FeatureExtractor(new_board)
             #get score
             score = calculate_score(f.getfeatures())
-            #if loss:
-            if score == 0:
-                continue
-            scores.append(score + eval_options(new_board, depth+1)[0])
+            scores.append(score + eval_options(new_board, depth+1, max_depth)[0])
             actions.append(i)
+    if not scores:
+        return 0, 4
     max_score = max(scores)
     return statistics.mean(scores), actions[scores.index(max_score)]
 
@@ -107,7 +116,11 @@ while True:
     if(score == 0):
         print(f"You lost on turn {turn} with a score of {score}!")
         break
-    g.move(eval_options(g.board, 0, 2)[1])
+    prev_board = g.board.copy()
+    results = eval_options(g.board, 0, 3)
+    g.move(results[1])
+    if np.array_equal(prev_board, g.board):
+        print("Hi")
     turn += 1
 print(g.board)
 
