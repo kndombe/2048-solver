@@ -10,7 +10,9 @@ class FeatureExtractor():
         return self.combinefeatures([
             self.emptyTiles(),
             self.hasMerge(),
-            self.maxTile()
+            self.maxTile(),
+            self.gravityFactor(),
+            self.accumulativeTiles()
         ])
 
     def combinefeatures(self, features):
@@ -67,6 +69,21 @@ class FeatureExtractor():
 
     def maxTile(self):
         return {'max_tile': np.amax(self.board)}
+
+    def gravityFactor(self):
+        factor = 0
+        for i in range(4):
+            row = 0
+            col = 0
+            for j in reversed(range(3)):
+                row += min(self.board[i, j+1] - self.board[i,j], 0)
+                col += min(self.board[j+1, i] - self.board[j,i], 0)
+            factor += row + col
+        return {'gravity': factor}
+
+    def accumulativeTiles(self):
+        return {'accumulativeTiles': sum(sum(np.square(self.board)))}
+
 
 # # Simulation Test
 # g = Game()
