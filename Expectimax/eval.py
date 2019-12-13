@@ -67,8 +67,16 @@ def move(board, direction):
     # rotation to the original
     return np.rot90(board_to_left, direction)
 
+def in_seen(seen, board):
+    for b in seen:
+        if np.array_equal(b, board):
+            return True
+    return False
+
 def board_generator(board, direction):
-    basic_board = move(board, direction)
+    basic_board = move(board.copy(), direction)
+    if np.array_equal(board, basic_board):
+        return set()
     f = FeatureExtractor(basic_board)
     try:
         if f.getfeatures()["empty_tiles"] == 0:
@@ -87,7 +95,9 @@ def board_generator(board, direction):
                 basic_board[r][c] = 0
     return successors
 
-def eval_options(board, depth, max_depth=1):
+def eval_options(board, depth, max_depth=1, successor_number=0):
+    if depth == 1:
+        print(f"Depth: 1, Successor: {successor_number} ")
     #Given the board, board
     if depth == max_depth:
         return 0, 4
@@ -101,18 +111,24 @@ def eval_options(board, depth, max_depth=1):
     scores = []
     actions = []
     successors = []
+    seen = []
     #Left = 0, Down = 1, Right = 2, Up = 3
     #for each possible action:
     for i in range(4):
         successors = board_generator(board.copy(), i)
+        if depth == 0:
+            print(f"Depth: {depth}, Direction: {i}, Number of successors: {len(successors)}")
+        counter = 0
         for new_board in successors:
-            if np.array_equal(board, new_board):
+            if in_seen(seen, new_board):
                 continue
+            seen.append(new_board)
             #extract features of result
             f = FeatureExtractor(new_board)
             #get score
             score = calculate_score(f.getfeatures())
-            scores.append(score + decay*eval_options(new_board, depth+1, max_depth)[0])
+            scores.append(score + decay*eval_options(new_board, depth+1, max_depth, counter)[0])
+            counter += 1
             actions.append(i)
     if not scores:
         return 0, 4
@@ -131,12 +147,13 @@ while True:
         print(f"You lost on turn {turn} with a score of {score}!")
         break
     prev_board = g.board.copy()
-    results = eval_options(g.board, 0, 2)
+    results = eval_options(g.board, 0, 3)
+    print(f"result: {results}")
     g.move(results[1])
     print('Choosing {} \n'.format(['left','down','right','up'][results[1]]))
     if np.array_equal(prev_board, g.board):
         print("Hi")
     turn += 1
-print(g.board)
+print(g)
 
 #print(calculate_score({'empty_tiles': 0, 'has_merge_row_0_23': 4.0, 'has_merge_col_0_12': 8.0, 'has_merge_col_1_01': 2.0, 'has_merge_col_1_23': 32.0, 'has_merge_col_2_01': 4.0, 'has_merge_col_3_23': 4.0, 'max_tile': 32.0}))
