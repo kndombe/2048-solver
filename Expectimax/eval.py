@@ -1,13 +1,20 @@
 import numpy as np
 from features import FeatureExtractor
+import math
+import random
 import statistics
 import sys
 sys.path.append('../APIs')
 from game import Game
 
 def calculate_score(feature_array):
+    can_merge = False
+    for f in feature_array:
+        if f.startswith('has_merge'):
+            can_merge = True
+            break
     #the score is dependent on the number of mergeable things and the number of empty tiles
-    if len(feature_array) == 2 and feature_array["empty_tiles"] == 0: #there are no empty tiles
+    if not can_merge and feature_array["empty_tiles"] == 0: #there are no empty tiles
         return 0
 
     vertical_merge = 0
@@ -23,7 +30,8 @@ def calculate_score(feature_array):
             horizontal_merge_value += feature_array[feature]
 
     merging_potential = max((vertical_merge * vertical_merge_value), (horizontal_merge * horizontal_merge_value))
-    return (merging_potential + feature_array["empty_tiles"]) * feature_array["max_tile"] * 0.5
+    return (merging_potential + feature_array["empty_tiles"] + feature_array['gravity'] + feature_array['accumulativeTiles']) \
+            * feature_array["max_tile"] * 0.5
 
 def merge(row):
     '''merge the row, there may be some improvement'''
@@ -59,8 +67,16 @@ def move(board, direction):
     # rotation to the original
     return np.rot90(board_to_left, direction)
 
+def in_seen(seen, board):
+    for b in seen:
+        if np.array_equal(b, board):
+            return True
+    return False
+
 def board_generator(board, direction):
-    basic_board = move(board, direction)
+    basic_board = move(board.copy(), direction)
+    if np.array_equal(board, basic_board):
+        return set()
     f = FeatureExtractor(basic_board)
     try:
         if f.getfeatures()["empty_tiles"] == 0:
@@ -79,26 +95,43 @@ def board_generator(board, direction):
                 basic_board[r][c] = 0
     return successors
 
-def eval_options(board, depth, max_depth=1):
+def eval_options(board, depth, max_depth=1, successor_number=0):
+    if depth == 1:
+        print(f"{successor_number}")
     #Given the board, board
     if depth == max_depth:
         return 0, 4
 
+    # With a depth of 2:
+    #   - Maxes at 512 with decay >= 0.8
+    #   - Pretty consistent min of 1024 for decay <= 0.7
+    #   - Sometimes reaches 2048 with 0.7
+    decay = 0.7
+
     scores = []
     actions = []
     successors = []
+    seen = []
     #Left = 0, Down = 1, Right = 2, Up = 3
     #for each possible action:
     for i in range(4):
         successors = board_generator(board.copy(), i)
-        for new_board in successors:
-            if np.array_equal(board, new_board):
+        counter = 0
+        num_samples = min(len(successors), 15)
+        random_sample = random.sample(range(len(successors)), num_samples)
+        if depth == 0:
+            print(f"Depth: {depth}, Direction: {i}, Number of successors: {len(successors)}, Number of samples: {num_samples}")
+        for index in random_sample:
+            new_board = successors[index]
+            if in_seen(seen, new_board):
                 continue
+            seen.append(new_board)
             #extract features of result
             f = FeatureExtractor(new_board)
             #get score
             score = calculate_score(f.getfeatures())
-            scores.append(score + eval_options(new_board, depth+1, max_depth)[0])
+            scores.append(score + decay*eval_options(new_board, depth+1, max_depth, counter)[0])
+            counter += 1
             actions.append(i)
     if not scores:
         return 0, 4
@@ -118,10 +151,12 @@ while True:
         break
     prev_board = g.board.copy()
     results = eval_options(g.board, 0, 3)
+    print(f"result: {results}")
     g.move(results[1])
+    print('Choosing {} \n'.format(['left','down','right','up'][results[1]]))
     if np.array_equal(prev_board, g.board):
         print("Hi")
     turn += 1
-print(g.board)
+print(g)
 
 #print(calculate_score({'empty_tiles': 0, 'has_merge_row_0_23': 4.0, 'has_merge_col_0_12': 8.0, 'has_merge_col_1_01': 2.0, 'has_merge_col_1_23': 32.0, 'has_merge_col_2_01': 4.0, 'has_merge_col_3_23': 4.0, 'max_tile': 32.0}))
