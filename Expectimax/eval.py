@@ -97,7 +97,7 @@ def board_generator(board, direction):
 
 def eval_options(board, depth, max_depth=1, successor_number=0):
     if depth == 1:
-        print(f"Depth: 1, Successor: {successor_number} ")
+        print(f"{successor_number}")
     #Given the board, board
     if depth == max_depth:
         return 0, 4
@@ -116,10 +116,13 @@ def eval_options(board, depth, max_depth=1, successor_number=0):
     #for each possible action:
     for i in range(4):
         successors = board_generator(board.copy(), i)
-        if depth == 0:
-            print(f"Depth: {depth}, Direction: {i}, Number of successors: {len(successors)}")
         counter = 0
-        for new_board in successors:
+        num_samples = min(len(successors), 15)
+        random_sample = random.sample(range(len(successors)), num_samples)
+        if depth == 0:
+            print(f"Depth: {depth}, Direction: {i}, Number of successors: {len(successors)}, Number of samples: {num_samples}")
+        for index in random_sample:
+            new_board = successors[index]
             if in_seen(seen, new_board):
                 continue
             seen.append(new_board)
